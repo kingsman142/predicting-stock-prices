@@ -35,14 +35,6 @@ class StockDataset(torch.utils.data.Dataset):
             self.train_data += train_windows
             self.test_data += test_windows
 
-        '''path = os.path.join("data", "Stocks", stock_fn)
-        self.data = pd.read_csv(path, header = 0).sort_values('Date')
-        close_prices = self.data.loc[:, 'Close'].as_matrix()
-
-        print("Num rows: {}".format(len(self.data)))
-
-        self.preprocess_stocks(close_prices)'''
-
     def preprocess_stocks(self, stock_data):
         # select training and testing data
         train = stock_data[: int(self.TRAIN * len(stock_data))].reshape(-1, 1)
@@ -61,17 +53,13 @@ class StockDataset(torch.utils.data.Dataset):
             EMA = gamma * train[index] + (1 - gamma) * EMA
             train[index] = EMA'''
 
-        #self.plot_stock_clean(train)
         train = self.sim_mov_avg(train, 50)
         test = self.sim_mov_avg(test, 50)
-        #self.plot_stock_clean(train)
 
         train_windows = self.create_windows(train, self.WINDOW_SIZE)
         test_windows = self.create_windows(test, self.WINDOW_SIZE)
 
         return train_windows, test_windows
-        #self.train_data = train_windows
-        #self.train_data = test_windows
 
     # optional -- Simple Moving Average (SMA)
     def sim_mov_avg(self, stock_data, averaging_window_size):
@@ -80,14 +68,20 @@ class StockDataset(torch.utils.data.Dataset):
     # (optional) custom_data = any stock data you want to plot that has a 'Close' and 'Date' column
     # (optional) index = if the user provides several stock filenames to the dataset's constructor, index allows the user to plot a specific stock data's history
     #                    if index is not provided, the first stock's history will be used
-    def plot_stock_raw(self, custom_data = None, index = 0):
-        plot_stock_raw(self.data[index]) if custom_data is None else plot_stock_raw(custom_data)
+    #                    if a list is provided, the stocks at those indices are plotted
+    def plot_stock_raw(self, index = 0):
+        if custom_data is not None:
+            plot_stock_raw(custom_data)
+        elif type(index) is int: # only a singular index was provided, instead of a list of indices
+            plot_stock_raw(self.data[index])
+        else: # a list of indices was provided
+            for ind in index:
+                plot_stock_raw(self.data[ind])
 
     # (optional) custom_data = any stock data you want to plot that only contains the actual prices (i.e. in a python list), and not a dataframe
-    # (optional) index = if the user provides several stock filenames to the dataset's constructor, index allows the user to plot a specific stock data's history
-    #                    if index is not provided, the first stock's history will be used
-    def plot_stock_clean(self, custom_data = None, index = 0):
-        plot_stock_clean(self.data[index]) if custom_data is None else plot_stock_clean(custom_data)
+    def plot_stock_custom(self, custom_data = None):
+        if custom_data is not None:
+            plot_stock_raw(custom_data)
 
     def create_windows(self, stock_data, window_size):
         output = []

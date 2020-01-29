@@ -22,8 +22,7 @@ LEARNING_RATE = 0.001 #0.0001
 
 model = StockPredictor(hidden_size = HIDDEN_SIZE)
 dataset = StockDataset(stock_fns = "aa.us.txt", window_size = WINDOW_SIZE, train = TRAIN)
-#dataset.plot_stock_raw()
-#print(len(dataset))
+#dataset.plot_stock_raw() # (OPTIONAL) uncomment to plot the stock data -- NOTE: only plots the first stock's history if a list of stocks is provided
 
 optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 loss_func = nn.L1Loss(reduction = 'mean') #nn.MSELoss(reduction = 'sum')
