@@ -81,7 +81,7 @@ class StockDataset(torch.utils.data.Dataset):
     # (optional) custom_data = any stock data you want to plot that only contains the actual prices (i.e. in a python list), and not a dataframe
     def plot_stock_custom(self, custom_data = None):
         if custom_data is not None:
-            plot_stock_raw(custom_data)
+            plot_stock_clean(custom_data)
 
     def create_windows(self, stock_data, window_size):
         output = []
