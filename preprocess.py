@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 class StockPreprocessor():
-    def __init__(self, stock_fns = ["aa.us.txt"], window_size = 250, train = 0.8, test = 0.2):
+    def __init__(self, stock_fns = ["aa.us.txt"], window_size = 250, train = 0.8, test = 0.2, sma_or_ema = 0, smoothing_window_size = 50):
         self.stock_fns = stock_fns if type(stock_fns) is list else [stock_fns] # a user can pass in a single stock fn, or a list of stock fns, but make sure to always convert it to a list
         self.WINDOW_SIZE = window_size
         self.TRAIN = train
@@ -14,6 +14,8 @@ class StockPreprocessor():
         self.data = []
         self.train_data = []
         self.test_data = []
+        self.sma_or_ema = sma_or_ema # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
+        self.smoothing_window_size = smoothing_window_size
 
         # iterate over all the stock files that belong to this dataset
         for stock_fn in self.stock_fns:
@@ -42,31 +44,33 @@ class StockPreprocessor():
         train = scaler.fit_transform(train).reshape(-1)
         test = scaler.transform(test).reshape(-1)
 
-        # perform exponential moving average smoothing
-        '''EMA = 0.0
-        gamma = 0.1
-        for index in range(len(train)):
-            EMA = gamma * train[index] + (1 - gamma) * EMA
-            train[index] = EMA'''
+        if self.sma_or_ema == 0: # perform simple moving average smoothing
+            # perform simple moving average smoothing
+            train = self.sim_mov_avg(train)
+            test = self.sim_mov_avg(test)
+        elif self.sma_or_ema == 1: # perform exponential moving average smoothing
+            '''EMA = 0.0
+            gamma = 0.1
+            for index in range(len(train)):
+                EMA = gamma * train[index] + (1 - gamma) * EMA
+                train[index] = EMA'''
 
-        # perform simple moving average smoothing
-        train = self.sim_mov_avg(train, 50)
-        test = self.sim_mov_avg(test, 50)
-
-        train_windows = self.create_windows(train, self.WINDOW_SIZE)
-        test_windows = self.create_windows(test, self.WINDOW_SIZE)
+        train_windows = self.create_windows(train)
+        test_windows = self.create_windows(test)
 
         return train_windows, test_windows
 
-    # optional -- Simple Moving Average (SMA)
-    def sim_mov_avg(self, stock_data, averaging_window_size):
-        return [np.average(stock_data[(i-averaging_window_size):i]) for i in range(averaging_window_size, len(stock_data)+1)]
+    # optional -- Exponential Moving Average (EMA)
 
-    def create_windows(self, stock_data, window_size):
+    # optional -- Simple Moving Average (SMA)
+    def sim_mov_avg(self, stock_data):
+        return [np.average(stock_data[(i-self.smoothing_window_size):i]) for i in range(self.smoothing_window_size, len(stock_data)+1)]
+
+    def create_windows(self, stock_data):
         output = []
-        for index in range(len(stock_data) - window_size - 1):
-            data_input = stock_data[index : (index + window_size)]
-            data_label = stock_data[index + window_size]
+        for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
+            data_input = stock_data[index : (index + self.WINDOW_SIZE)]
+            data_label = stock_data[index + self.WINDOW_SIZE]
             output.append((data_input, data_label))
         return output
 
