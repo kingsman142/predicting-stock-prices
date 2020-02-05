@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,6 +9,7 @@ import numpy as np
 
 from model import StockPredictor
 from dataset import StockDataset
+from preprocess import StockPreprocessor
 
 # set network hyperparameters
 TRAIN = 0.8 #0.0209
@@ -29,10 +31,13 @@ MODEL_SAVE_NAME = "train{}_windowsize{}_epochs{}_batchsize{}_hiddensize{}_lr{}".
 # set up dataset and model
 stock_fns = ["aa.us.txt", "msft.us.txt", "goog.us.txt", "gpic.us.txt", "rfdi.us.txt", "aal.us.txt"] # chosen somewhat randomly
 model = StockPredictor(hidden_size = HIDDEN_SIZE)
-dataset = StockDataset(stock_fns = stock_fns, window_size = WINDOW_SIZE, train = TRAIN)
+train_windows, test_windows = StockPreprocessor(stock_fns = stock_fns, window_size = WINDOW_SIZE, train = TRAIN).get_splits()
+train_dataset = StockDataset(stock_windows = train_windows)
+test_dataset = StockDataset(stock_windows = test_windows)
 
 # (OPTIONAL) uncomment to plot the stock data -- NOTE: only plots the first stock's history if a list of stocks is provided
-#dataset.plot_stock_raw()
+#train_dataset.plot_stock_raw()
+#test_dataset.plot_stock_raw()
 
 # load pre-trained model weights
 if MODEL_LOAD_NAME is not None:
@@ -41,12 +46,13 @@ if MODEL_LOAD_NAME is not None:
 # set up hyperparameters
 optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 loss_func = nn.L1Loss(reduction = 'mean') #nn.MSELoss(reduction = 'sum')
-loader = data.DataLoader(dataset, batch_size = BATCH_SIZE, shuffle = True)
+train_loader = data.DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle = True)
+test_loader = data.DataLoader(test_dataset, batch_size = 1, shuffle = True)
 
 # train the model
 for epoch in range(EPOCHS): # iterate over epochs
     avg_loss = 0.0
-    for batch_id, samples in enumerate(loader): # iterate over batches
+    for batch_id, samples in enumerate(train_loader): # iterate over batches
         # input prices and ground-truth price prediction
         prices = samples['prices']
         labels = samples['labels']
@@ -64,11 +70,32 @@ for epoch in range(EPOCHS): # iterate over epochs
         avg_loss += loss.item()
         if batch_id % 50 == 0:
             if BATCH_SIZE == 1:
-                print("Epoch {}/{} -- Batch {}/{} -- Loss: {} -- Pred: {}, True: {}".format(epoch+1, EPOCHS, batch_id+1, len(loader), loss.item(), pred.item(), labels.item()))
+                print("(train) Epoch {}/{} -- Batch {}/{} -- Loss: {} -- Pred: {}, True: {}".format(epoch+1, EPOCHS, batch_id+1, len(train_loader), loss.item(), pred.item(), labels.item()))
             else:
-                print("Epoch {}/{} -- Batch {}/{} -- Loss: {}".format(epoch+1, EPOCHS, batch_id+1, len(loader), loss.item()))
-    avg_loss /= len(loader)
+                print("(train) Epoch {}/{} -- Batch {}/{} -- Loss: {}".format(epoch+1, EPOCHS, batch_id+1, len(train_loader), loss.item()))
+    avg_loss /= len(train_loader)
     print("--- Epoch {} avg loss: {}".format(epoch+1, avg_loss))
+
+# test the model
+avg_loss = 0.0
+for batch_id, samples in enumerate(test_loader): # iterate over batches
+    # input prices and ground-truth price prediction
+    prices = samples['prices']
+    labels = samples['labels']
+
+    # make predictions and calculate loss
+    pred = model(prices)
+    loss = loss_func(pred, labels)
+
+    # print out useful logging information for user
+    avg_loss += loss.item()
+    if batch_id % 50 == 0:
+        if BATCH_SIZE == 1:
+            print("(test) Batch {}/{} -- Loss: {} -- Pred: {}, True: {}".format(batch_id+1, len(test_loader), loss.item(), pred.item(), labels.item()))
+        else:
+            print("(test) Batch {}/{} -- Loss: {}".format(batch_id+1, len(test_loader), loss.item()))
+avg_loss /= len(test_loader)
+print("(test) avg loss: {}".format(avg_loss))
 
 # save our model
 if not os.path.exists("models"):
