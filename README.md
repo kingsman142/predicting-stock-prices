@@ -2,10 +2,10 @@
 Using an LSTM to predict stock prices
 
 0. Download data from https://www.kaggle.com/borismarjanovic/price-volume-data-for-all-us-stocks-etfs/data and place it in a data/ folder in the project root directory such that you have a "data/Data", "data/ETFs", and "data/Stocks" folder
-1. Run `train.py`
-2. (optional) Run `test_ood_stocks.py` to test your trained model on OOD (out-of-distribution) stocks, which are stocks your model was not trained on
-3. (optional) Run `test_live_data.py` to pull live prices off of a stock exchange site and compare the success of the model on a daily basis
-4. (optional) Run `test_buy_seller.py` to simulate a buying and selling bot in an auction house
+1. Run `python3 train.py`
+2. (optional) Run `python3 test_ood_stocks.py` to test your trained model on OOD (out-of-distribution) stocks, which are stocks your model was not trained on
+3. (optional) Run `python3 test_live_data.py` to pull live prices off of a stock exchange site and compare the success of the model on a daily basis
+4. (optional) Run `python3 test_buy_seller.py` to simulate a buying and selling bot in an auction house
 
 TODO:
 * Investigate common fault signals in stock prediction ( https://www.investopedia.com/terms/f/false-signal.asp and https://www.investopedia.com/articles/active-trading/052014/how-use-moving-average-buy-stocks.asp)
