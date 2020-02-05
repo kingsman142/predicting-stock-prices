@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 class StockPreprocessor():
-    def __init__(self, stock_fns = ["aa.us.txt"], window_size = 250, train = 0.8, test = 0.2, sma_or_ema = 0, smoothing_window_size = 50):
+    def __init__(self, stock_fns = ["aa.us.txt"], window_size = 250, train = 0.8, test = 0.2, sma_or_ema = 1, smoothing_window_size = 50):
         self.stock_fns = stock_fns if type(stock_fns) is list else [stock_fns] # a user can pass in a single stock fn, or a list of stock fns, but make sure to always convert it to a list
         self.WINDOW_SIZE = window_size
         self.TRAIN = train
@@ -45,15 +45,11 @@ class StockPreprocessor():
         test = scaler.transform(test).reshape(-1)
 
         if self.sma_or_ema == 0: # perform simple moving average smoothing
-            # perform simple moving average smoothing
-            train = self.sim_mov_avg(train)
-            test = self.sim_mov_avg(test)
+            train = self.simple_mov_avg(train)
+            test = self.simple_mov_avg(test)
         elif self.sma_or_ema == 1: # perform exponential moving average smoothing
-            '''EMA = 0.0
-            gamma = 0.1
-            for index in range(len(train)):
-                EMA = gamma * train[index] + (1 - gamma) * EMA
-                train[index] = EMA'''
+            train = self.exp_mov_avg(train)
+            test = self.exp_mov_avg(test)
 
         train_windows = self.create_windows(train)
         test_windows = self.create_windows(test)
@@ -61,9 +57,16 @@ class StockPreprocessor():
         return train_windows, test_windows
 
     # optional -- Exponential Moving Average (EMA)
+    def exp_mov_avg(self, stock_data):
+        EMA = 0.0
+        gamma = 2 / (self.smoothing_window_size + 1) # general formula = 2 / (window_size + 1) (e.g. 20 days = 0.0952, 50 days = 0.0392, and 100 days = 0.0198)
+        for index in range(len(stock_data)):
+            EMA = gamma * stock_data[index] + (1 - gamma) * EMA
+            stock_data[index] = EMA
+        return stock_data
 
     # optional -- Simple Moving Average (SMA)
-    def sim_mov_avg(self, stock_data):
+    def simple_mov_avg(self, stock_data):
         return [np.average(stock_data[(i-self.smoothing_window_size):i]) for i in range(self.smoothing_window_size, len(stock_data)+1)]
 
     def create_windows(self, stock_data):
@@ -76,3 +79,6 @@ class StockPreprocessor():
 
     def get_splits(self):
         return self.train_data, self.test_data
+
+    def get_all_data(self):
+        return self.train_data + self.test_data
