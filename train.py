@@ -20,7 +20,7 @@ BATCH_SIZE = 1 #4
 HIDDEN_SIZE = 150 #200
 LEARNING_RATE = 0.001 #0.0001
 SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
-SMOOTHING_WINDOW_SIZE = 50
+SMOOTHING_WINDOW_SIZE = 26
 
 MODEL_LOAD_NAME = None # change to load in a custom model
 MODEL_SAVE_NAME = "train{}_windowsize{}_epochs{}_batchsize{}_hiddensize{}_lr{}_smoothing{}_smoothingsize{}".format(int(TRAIN*100), WINDOW_SIZE, EPOCHS, BATCH_SIZE, HIDDEN_SIZE, LEARNING_RATE, SMA_OR_EMA, SMOOTHING_WINDOW_SIZE)
@@ -31,7 +31,8 @@ MODEL_SAVE_NAME = "train{}_windowsize{}_epochs{}_batchsize{}_hiddensize{}_lr{}_s
 # train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 100, lr = 0.001, simple moving average, smoothing window = 50, 6 stocks => 0.0013 L1 loss ('sum' reduction)
 # train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 100, lr = 0.001, exponential moving average (gamma = 0.1), smoothing window = 50, 6 stocks => 0.0019 L1 loss ('sum' reduction)
 # train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 100, lr = 0.001, exponential moving average (gamma = 0.0392), smoothing window = 50, 6 stocks => 0.0014 L1 train loss, 0.0024 test loss ('sum' reduction)
-# train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 100, lr = 0.001, exponential moving average (gamma = 0.2), smoothing window = 50, 6 stocks => N/A L1 loss ('sum' reduction)
+# train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 100, lr = 0.001, exponential moving average (gamma = 0.2), smoothing window = 50, 6 stocks, SGD => 0.0051 L1 loss ('sum' reduction)
+# train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 100, lr = 0.001, exponential moving average (gamma = standard), smoothing window = 26, 6 stocks => 0.0015 L1 train loss, 0.0016 test loss ('sum' reduction)
 
 # set up dataset and model
 stock_fns = ["aa.us.txt", "msft.us.txt", "goog.us.txt", "gpic.us.txt", "rfdi.us.txt", "aal.us.txt"] # chosen somewhat randomly
@@ -49,7 +50,7 @@ if MODEL_LOAD_NAME is not None:
     model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 
 # set up hyperparameters
-optimizer = optim.SGD(model.parameters(), lr = LEARNING_RATE)
+optimizer = optim.Adam(model.parameters(), lr = LEARNING_RATE)
 loss_func = nn.L1Loss(reduction = 'mean') #nn.MSELoss(reduction = 'sum')
 train_loader = data.DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle = True)
 test_loader = data.DataLoader(test_dataset, batch_size = 1, shuffle = True)

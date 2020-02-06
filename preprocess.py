@@ -59,7 +59,7 @@ class StockPreprocessor():
     # optional -- Exponential Moving Average (EMA)
     def exp_mov_avg(self, stock_data):
         EMA = 0.0
-        gamma = 2 / (self.smoothing_window_size + 1) # general formula = 2 / (window_size + 1) (e.g. 20 days = 0.0952, 50 days = 0.0392, and 100 days = 0.0198)
+        gamma = 2 / (self.smoothing_window_size + 1) # general formula = 2 / (window_size + 1) (e.g. 20 days = 0.0952, 50 days = 0.0392, and 100 days = 0.0198), typically 12-day or 26-days are used for short-term EMA and 50-day and 100-day are used for long-term EMA
         for index in range(len(stock_data)):
             EMA = gamma * stock_data[index] + (1 - gamma) * EMA
             stock_data[index] = EMA
