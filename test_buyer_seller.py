@@ -4,6 +4,11 @@
 # 3) Every stock you've invested in today, check its price every 2 hours to make sure it's not crashing
 #################
 
+##### NOTES #####
+# 1) One iteration from the data loader does not necessarily imply one day's change in the stock price; the stock market is closed on weekends
+#    and is only one for 242 days of the year for trading. (e.g. 410 iterations / 242 trading days = 1.69 trading years to get the reported RoI)
+#################
+
 import os
 import glob
 import torch
@@ -16,7 +21,8 @@ from model import StockPredictor
 from buyer_seller import BuyerSeller
 from preprocess import StockPreprocessor
 from dataset import StockDataset
-from utils import plot_stock_raw
+from utils import plot_stock_raw, plot_roi
+from stock_market import StockMarket
 
 # set MODEL_LOAD_NAME to a specific name to load a specific model or set it to None to load the newest trained model
 MODEL_LOAD_NAME = None # "train80_windowsize50_epochs1_batchsize1_hiddensize150_lr0.001_smoothing1_smoothingsize50"
@@ -32,7 +38,7 @@ print("Loading model {} ...".format(MODEL_LOAD_NAME))
 TRAIN = 0.8
 WINDOW_SIZE = 50
 SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
-SMOOTHING_WINDOW_SIZE = 26
+SMOOTHING_WINDOW_SIZE = 26 # 12-day = 30% RoI, 26-day = 10% RoI, 50-day = 5.5% RoI, 100-day = 5% RoI
 INITIAL_MONEY = 10
 
 # set up model
@@ -40,7 +46,7 @@ model = StockPredictor(hidden_size = MODEL_HIDDEN_SIZE)
 model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 
 # determine which OOD stocks to use
-ood_stock_fns = ["goog.us.txt"] # ["goog.us.txt"]
+ood_stock_fns = ["acbi.us.txt"] # ["goog.us.txt"]
 
 # preprocess the dataset
 preprocessor = StockPreprocessor(stock_fns = ood_stock_fns, window_size = WINDOW_SIZE, train = TRAIN, sma_or_ema = SMA_OR_EMA, smoothing_window_size = SMOOTHING_WINDOW_SIZE)

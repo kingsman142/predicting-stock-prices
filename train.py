@@ -19,7 +19,7 @@ EPOCHS = 20
 BATCH_SIZE = 1 #4
 HIDDEN_SIZE = 150 #200
 LEARNING_RATE = 0.001 #0.0001
-SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
+SMA_OR_EMA = 2 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
 SMOOTHING_WINDOW_SIZE = 26
 
 MODEL_LOAD_NAME = None # change to load in a custom model

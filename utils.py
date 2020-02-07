@@ -23,3 +23,11 @@ def plot_predictions(ground_truth, predictions):
     plt.xlabel('Timestep', fontsize = 10)
     plt.ylabel('Avg. Price', fontsize = 11)
     plt.show()
+
+# as we shift the smoothing window size, how does that impact our RoI?
+def plot_roi(window_sizes, rois):
+    plt.plot(window_sizes, rois)
+    plt.xlabel("Smoothing window size")
+    plt.ylabel("RoI %")
+    plt.savefig("smoothing_window_roi.png")
+    plt.show()

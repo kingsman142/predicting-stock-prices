@@ -1,5 +1,8 @@
 # TODO:
 # attach stock name to its price/label pairing from the dataloader
+# change the thresholds to be more adaptive. they currently don't work very well if a stock is 50 or 100 years old, as it'll be biased toward the
+#   more modern prices due to inflation (i.e. modern prices will have larger fluctuation technically), so maybe try to do a % increase compared
+#   to the stock price
 
 class BuyerSeller():
     def __init__(self, initial_money = 0):
