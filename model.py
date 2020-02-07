@@ -16,6 +16,7 @@ class StockPredictor(nn.Module):
                              torch.zeros(1, batch_size, self.hidden_size))
         new_prices = prices.permute(1, 0).unsqueeze(-1)
 
+        # NOTE: pytorch LSTM units take input in the form of [window_length, batch_size, num_features], which will end up being [WINDOW_SIZE, batch_size, 1] for our dataset
         lstm_out, self.hidden_cell = self.lstm(new_prices, self.hidden_cell)
         pred = self.linear(lstm_out[-1])
         return pred[-1]
