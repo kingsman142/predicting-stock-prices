@@ -1,6 +1,11 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
+
+from sklearn.preprocessing import MinMaxScaler
+
+pd.options.mode.chained_assignment = None  # default='warn'
 
 # simulates the stock market
 # reads in a bunch of stocks, and only outputs prices for stocks that are on the market
@@ -29,20 +34,23 @@ class StockMarket():
             # extract training and testing windows, and concatenate them onto our already existing training and testing data
             windows = self.preprocess_stocks(close_prices)
 
-            historical_prices = data_csv.loc[:, ['Date', 'Close']].as_matrix() # similar matrix to the above but with the dates included
+            historical_prices = data_csv.loc[:, ['Date', 'Close']] # similar matrix to the above but with the dates included
             historical_prices.rename(columns = {'Close': stock_ticker}, inplace = True) # rename the 'Close' column to the stock's ticker name so we can make a stock matrix involving different stocks later
 
             if self.stock_market is None:
                 self.stock_market = historical_prices
             else:
                 self.stock_market = pd.merge(self.stock_market, historical_prices, how = 'outer', on = 'Date')
+            self.stock_market.sort_values('Date', inplace = True) # sanity check to make sure all the prices are in chronological order
+            self.stock_market.reset_index(inplace = True, drop = True) # after sorting, make sure the original row indices weren't kept, and drop the original index
 
             stock_starting_date = historical_prices.iloc[0]['Date'] # get the date on the 0th row (assuming this data is sorted by Date)
             stock_market_start_index = self.stock_market.loc[self.stock_market['Date'] == stock_starting_date].index[0] # get the row number, after merging in this stock's prices, where this stock began to be sold on the stock market
 
             self.stock_market[stock_ticker] = np.nan # clear all the elements in the column (just floats) with NaN so we can replace them with their corresponding windows below
-            self.stock_market[stock_ticker][stock_market_start_index + self.WINDOW_SIZE : stock_market_start_index + self.WINDOW_SIZE + len(windows)] = windows # replace this stock's prices with actual window (previous K prices) and the ground-truth price
-        self.stock_market.sort_values('Date') # sanity check to make sure all the prices are in chronological order
+            self.stock_market[stock_ticker][(stock_market_start_index + self.WINDOW_SIZE) : (stock_market_start_index + self.WINDOW_SIZE + len(windows))] = windows # replace this stock's prices with actual window (previous K prices) and the ground-truth price
+
+        self.stock_ticker_column_names = self.stock_market.columns[1:]
 
     def preprocess_stocks(self, stock_data):
         # select training and testing data
@@ -83,8 +91,8 @@ class StockMarket():
             output.append((data_input, data_label))
         return output
 
-    def get_iteration(self, index):
-        return self.stock_market.iloc[index] # get all the prices for a given day
+    def get_iteration_prices(self, index):
+        return self.stock_market['Date'][index], self.stock_market.iloc[index][self.stock_ticker_column_names] # get all the prices for a given day, but remove the 'Date' column
 
-    def get_num_iterations(self):
+    def __len__(self):
         return len(self.stock_market) # get number of days we can possibly buy/sell
