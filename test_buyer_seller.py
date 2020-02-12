@@ -13,6 +13,7 @@ import os
 import glob
 import torch
 import requests
+import random
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -46,18 +47,22 @@ print("Loading model {} ...".format(MODEL_LOAD_NAME))
 TRAIN = 0.8
 WINDOW_SIZE = 50
 SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
-SMOOTHING_WINDOW_SIZE = 12 # 12-day = 30% RoI, 26-day = 10% RoI, 50-day = 5.5% RoI, 100-day = 5% RoI
-INITIAL_MONEY = 100000
+SMOOTHING_WINDOW_SIZE = 50 # 12-day = 30% RoI, 26-day = 10% RoI, 50-day = 5.5% RoI, 100-day = 5% RoI
+INITIAL_MONEY = 10000
+TRADING_START_DATE = "2015" # begin trading at this date or later (e.g. "2015", "2007-01", "2007-01-01", "YYYY-MM-DD"); None => start date is the earliest start date across all stocks
 
 # set up model
 model = StockPredictor(hidden_size = MODEL_HIDDEN_SIZE).to(device)
 model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 
 # determine which OOD stocks to use
-ood_stock_fns = ["jpm.us.txt"]#, "googl.us.txt", "goex.us.txt", "goro.us.txt", "lea.us.txt", "tsla.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] #["acbi.us.txt", "googl.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] # ["acbi.us.txt"]
+all_stock_fns = [os.path.split(path)[1] for path in glob.glob(os.path.join("data", "Stocks", "*"))]
+random.shuffle(all_stock_fns)
+ood_stock_fns = all_stock_fns[0:100] #["acbi.us.txt", "googl.us.txt", "goex.us.txt", "goro.us.txt", "lea.us.txt", "tsla.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] #["acbi.us.txt", "googl.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] # ["acbi.us.txt"]
+print("Stocks traded: {}".format(ood_stock_fns))
 
 # preprocess the dataset and set up a stock market so we can pull prices on a daily basis
-market = StockMarket(stock_fns = ood_stock_fns, window_size = WINDOW_SIZE, sma_or_ema = SMA_OR_EMA, smoothing_window_size = SMOOTHING_WINDOW_SIZE)
+market = StockMarket(stock_fns = ood_stock_fns, window_size = WINDOW_SIZE, sma_or_ema = SMA_OR_EMA, smoothing_window_size = SMOOTHING_WINDOW_SIZE, trading_start_date = TRADING_START_DATE)
 agent = BuyerSeller(initial_money = INITIAL_MONEY, market = market)
 
 # test the model
@@ -93,15 +98,15 @@ for day_number in range(len(market)): # iterate over batches
 
     # buying/selling logic
     stocks_bought, stocks_sold, num_active_stocks = agent.buy_sell_or_stay(stock_analysis_model)
-    if day_number % 100 == 0:
+    if day_number == 0 or (day_number+1) % 100 == 0:
         print("Date: {}, Day {}/{} -- # active stocks: {}, # bought: {}, # sold: {}, Curr money: {}".format( \
                 date, day_number + 1, len(market), num_active_stocks, len(stocks_bought), len(stocks_sold), \
                 round(agent.get_curr_investment_money(), 2)))
-        print("Pred prices: {}".format(pred_prices))
-        print("True prices: {}".format(true_prices))
-        print("Untr prices: {}".format(true_untransformed_prices))
-        print(agent.get_stock_counts())
-        print(agent.get_stock_prices())
+        #print("Pred prices: {}".format(pred_prices))
+        #print("True prices: {}".format(true_prices))
+        #print("Untr prices: {}".format(true_untransformed_prices))
+        #print(agent.get_stock_counts())
+        #print(agent.get_stock_prices())
 
     # prepare for next iteration
     curr_prices = true_prices

@@ -13,13 +13,14 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # should also output all prices of each stock on a given day, as well as their previous price
 
 class StockMarket():
-    def __init__(self, stock_fns = ["aa.us.txt"], window_size = 250, sma_or_ema = 1, smoothing_window_size = 26):
+    def __init__(self, stock_fns = ["aa.us.txt"], window_size = 250, sma_or_ema = 1, smoothing_window_size = 26, trading_start_date = None):
         self.stock_fns = stock_fns if type(stock_fns) is list else [stock_fns] # a user can pass in a single stock fn, or a list of stock fns, but make sure to always convert it to a list
         self.WINDOW_SIZE = window_size
         self.sma_or_ema = sma_or_ema # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
         self.smoothing_window_size = smoothing_window_size
         self.stock_market = None
         self.stock_scalers = {}
+        self.trading_start_date = trading_start_date
 
         # iterate over all the stock files that belong to this dataset
         for stock_fn in self.stock_fns:
@@ -27,10 +28,17 @@ class StockMarket():
 
             # read in this stock's data into a pandas dataframe
             path = os.path.join("data", "Stocks", stock_fn)
-            data_csv = pd.read_csv(path, header = 0).sort_values('Date')
+            try:
+                data_csv = pd.read_csv(path, header = 0).sort_values('Date')
+            except: # error is most likely "pandas.errors.EmptyDataError: No columns to parse from file"
+                continue
+            if self.trading_start_date is not None and type(self.trading_start_date) is str and len(self.trading_start_date) >= 4:
+                data_csv = data_csv[data_csv['Date'] >= self.trading_start_date] # only begin trading this stock at a specific start date
             close_prices = data_csv.loc[:, 'Close'].as_matrix()
 
             print("Num rows in {}: {}".format(stock_fn, len(data_csv)))
+            if len(data_csv) < self.WINDOW_SIZE-1:
+                continue
 
             # extract training and testing windows, and concatenate them onto our already existing training and testing data
             windows = self.preprocess_stocks(stock_ticker, close_prices)
