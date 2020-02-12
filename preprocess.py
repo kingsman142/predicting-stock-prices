@@ -71,7 +71,9 @@ class StockPreprocessor():
 
     # optional -- Simple Moving Average (SMA)
     def simple_mov_avg(self, stock_data):
-        return [np.average(stock_data[(i-self.smoothing_window_size):i]) for i in range(self.smoothing_window_size, len(stock_data)+1)]
+        smoothed_data = [np.average(stock_data[(i-self.smoothing_window_size):i]) for i in range(self.smoothing_window_size, len(stock_data)+1)]
+        smoothed_data = np.reshape(smoothed_data, (-1, 1))
+        return smoothed_data
 
     def create_windows(self, stock_data):
         output = []

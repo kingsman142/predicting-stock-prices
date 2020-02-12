@@ -28,7 +28,7 @@ print("Loading model {} ...".format(MODEL_LOAD_NAME))
 # set network hyperparameters
 TRAIN = 0.8
 WINDOW_SIZE = 50
-SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
+SMA_OR_EMA = 2 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
 SMOOTHING_WINDOW_SIZE = 26
 
 # set up model
@@ -36,7 +36,7 @@ model = StockPredictor(hidden_size = MODEL_HIDDEN_SIZE).to(device)
 model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 
 # determine which OOD stocks to use
-ood_stock_fns = ["acbi.us.txt", "hscz.us.txt", "qvcb.us.txt", "qsr.us.txt"] # ["acbi.us.txt"]
+ood_stock_fns = ["acbi.us.txt"]#, "hscz.us.txt", "qvcb.us.txt", "qsr.us.txt"] # ["acbi.us.txt"]
 
 # preprocess the dataset
 stock_windows = StockPreprocessor(stock_fns = ood_stock_fns, window_size = WINDOW_SIZE, train = TRAIN, sma_or_ema = SMA_OR_EMA, smoothing_window_size = SMOOTHING_WINDOW_SIZE).get_all_data()
@@ -68,5 +68,17 @@ for batch_id, samples in enumerate(loader): # iterate over batches
 avg_loss /= len(loader)
 print("(test) avg loss: {}".format(avg_loss))
 
+if len(ood_stock_fns) == 1:
+    fluctuation_correct = 0
+    for i in range(1, len(predictions)):
+        if ground_truth[i] > ground_truth[i-1] and predictions[i] > predictions[i-1]:
+            fluctuation_correct += 1
+        elif ground_truth[i] < ground_truth[i-1] and predictions[i] < predictions[i-1]:
+            fluctuation_correct += 1
+    fluctuation_accuracy = fluctuation_correct / (len(predictions) - 1)
+    print("Fluctuation accuracy: {}%".format(round(fluctuation_accuracy * 100.0, 2)))
+
 if len(ood_stock_fns) == 1: # only have to plot one stock's predictions
-    plot_predictions(ground_truth, predictions)
+    stock_ticker = ood_stock_fns[0].split(".")[0]
+    pred_graph_filename = "{}_price_prediction_unsmoothed".format(stock_ticker)
+    plot_predictions(stock_ticker, pred_graph_filename, ground_truth, predictions)

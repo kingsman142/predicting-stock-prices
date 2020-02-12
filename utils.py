@@ -16,12 +16,14 @@ def plot_stock_clean(stock_data):
     plt.ylabel('Avg. Price', fontsize = 11)
     plt.show()
 
-def plot_predictions(ground_truth, predictions):
+def plot_predictions(stock_ticker, filename, ground_truth, predictions):
     plt.plot(range(len(ground_truth)), ground_truth)
     plt.plot(range(len(ground_truth)), predictions)
     plt.xticks(range(0, len(ground_truth), 50), range(0, len(ground_truth), 50), rotation = 45)
     plt.xlabel('Timestep', fontsize = 10)
     plt.ylabel('Avg. Price', fontsize = 11)
+    plt.title("Predictions for {}".format(stock_ticker))
+    plt.savefig("{}.png".format(filename))
     plt.show()
 
 # as we shift the smoothing window size, how does that impact our RoI?
