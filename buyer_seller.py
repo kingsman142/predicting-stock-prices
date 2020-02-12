@@ -49,7 +49,7 @@ class BuyerSeller():
                 stocks_sold.append((stock_ticker, sell_amount))
 
         # now that we've found the one stock with the best margin, buy as much of it as possible
-        stocks_to_buy.sort(key = lambda stock_info : stock_info[1], reverse = True) # sort by margin in descending order
+        stocks_to_buy.sort(key = lambda stock_info : (stock_info[1]*stock_info[2]), reverse = True) # sort by margin in descending order
         for stock in stocks_to_buy:
             stock_ticker, buy_amount = stock[0], stock[2]
 
