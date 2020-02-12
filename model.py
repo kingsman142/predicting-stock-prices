@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 class StockPredictor(nn.Module):
     def __init__(self, input_size = 1, hidden_size = 200, output_size = 1):
         super(StockPredictor, self).__init__()
@@ -12,8 +14,8 @@ class StockPredictor(nn.Module):
 
     def forward(self, prices):
         batch_size = len(prices)
-        self.hidden_cell = (torch.zeros(1, batch_size, self.hidden_size),
-                             torch.zeros(1, batch_size, self.hidden_size))
+        self.hidden_cell = (torch.zeros(1, batch_size, self.hidden_size).to(device),
+                             torch.zeros(1, batch_size, self.hidden_size).to(device))
         new_prices = prices.permute(1, 0).unsqueeze(-1)
 
         # NOTE: pytorch LSTM units take input in the form of [window_length, batch_size, num_features], which will end up being [WINDOW_SIZE, batch_size, 1] for our dataset

@@ -19,6 +19,7 @@ class StockMarket():
         self.sma_or_ema = sma_or_ema # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
         self.smoothing_window_size = smoothing_window_size
         self.stock_market = None
+        self.stock_scalers = {}
 
         # iterate over all the stock files that belong to this dataset
         for stock_fn in self.stock_fns:
@@ -32,7 +33,7 @@ class StockMarket():
             print("Num rows in {}: {}".format(stock_fn, len(data_csv)))
 
             # extract training and testing windows, and concatenate them onto our already existing training and testing data
-            windows = self.preprocess_stocks(close_prices)
+            windows = self.preprocess_stocks(stock_ticker, close_prices)
 
             historical_prices = data_csv.loc[:, ['Date', 'Close']] # similar matrix to the above but with the dates included
             historical_prices.rename(columns = {'Close': stock_ticker}, inplace = True) # rename the 'Close' column to the stock's ticker name so we can make a stock matrix involving different stocks later
@@ -41,7 +42,7 @@ class StockMarket():
                 self.stock_market = historical_prices
             else:
                 self.stock_market = pd.merge(self.stock_market, historical_prices, how = 'outer', on = 'Date')
-            self.stock_market.sort_values('Date', inplace = True) # sanity check to make sure all the prices are in chronological order
+            self.stock_market.sort_values('Date', inplace = True, ascending = True) # sanity check to make sure all the prices are in chronological order
             self.stock_market.reset_index(inplace = True, drop = True) # after sorting, make sure the original row indices weren't kept, and drop the original index
 
             stock_starting_date = historical_prices.iloc[0]['Date'] # get the date on the 0th row (assuming this data is sorted by Date)
@@ -52,21 +53,22 @@ class StockMarket():
 
         self.stock_ticker_column_names = self.stock_market.columns[1:]
 
-    def preprocess_stocks(self, stock_data):
+    def preprocess_stocks(self, stock_ticker, stock_data):
         # select training and testing data
         prices = stock_data.reshape(-1, 1)
-
-        # scale the data between 0 and 1
-        # also, reshape the data and transform the test set
-        scaler = MinMaxScaler()
-        prices = scaler.fit_transform(prices).reshape(-1)
+        prices_copy = prices.copy()
 
         if self.sma_or_ema == 0: # perform simple moving average smoothing
             prices = self.simple_mov_avg(prices)
         elif self.sma_or_ema == 1: # perform exponential moving average smoothing
             prices = self.exp_mov_avg(prices)
 
-        prices_windows = self.create_windows(prices)
+        # scale the data between 0 and 1
+        # also, reshape the data and transform the test set
+        self.stock_scalers[stock_ticker] = MinMaxScaler()
+        prices = self.stock_scalers[stock_ticker].fit_transform(prices).reshape(-1)
+
+        prices_windows = self.create_windows(prices, prices_copy)
 
         return prices_windows
 
@@ -83,16 +85,20 @@ class StockMarket():
     def simple_mov_avg(self, stock_data):
         return [np.average(stock_data[(i-self.smoothing_window_size):i]) for i in range(self.smoothing_window_size, len(stock_data)+1)]
 
-    def create_windows(self, stock_data):
+    def create_windows(self, stock_data, stock_data_untransformed):
         output = []
         for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
             data_input = stock_data[index : (index + self.WINDOW_SIZE)]
             data_label = stock_data[index + self.WINDOW_SIZE]
-            output.append((data_input, data_label))
+            unsmoothed_gt_price = stock_data_untransformed[index + self.WINDOW_SIZE][0] # stock_data_untransformed is the price data that is unsmoothed & unnormalized
+            output.append((data_input, data_label, unsmoothed_gt_price))
         return output
 
     def get_iteration_prices(self, index):
         return self.stock_market['Date'][index], self.stock_market.iloc[index][self.stock_ticker_column_names] # get all the prices for a given day, but remove the 'Date' column
+
+    def get_stock_scalers(self):
+        return self.stock_scalers
 
     def __len__(self):
         return len(self.stock_market) # get number of days we can possibly buy/sell
