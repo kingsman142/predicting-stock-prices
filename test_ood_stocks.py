@@ -9,6 +9,12 @@ from preprocess import StockPreprocessor
 from dataset import StockDataset
 from utils import plot_predictions
 
+if torch.cuda.is_available():
+    print("Testing on GPU...")
+else:
+    print("No GPU found. Training on CPU...")
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 # set MODEL_LOAD_NAME to a specific name to load a specific model or set it to None to load the newest trained model
 MODEL_LOAD_NAME = None # "train80_windowsize50_epochs1_batchsize1_hiddensize150_lr0.001_smoothing1_smoothingsize50"
 if MODEL_LOAD_NAME is None:
@@ -23,10 +29,10 @@ print("Loading model {} ...".format(MODEL_LOAD_NAME))
 TRAIN = 0.8
 WINDOW_SIZE = 50
 SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
-SMOOTHING_WINDOW_SIZE = 50
+SMOOTHING_WINDOW_SIZE = 26
 
 # set up model
-model = StockPredictor(hidden_size = MODEL_HIDDEN_SIZE)
+model = StockPredictor(hidden_size = MODEL_HIDDEN_SIZE).to(device)
 model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 
 # determine which OOD stocks to use
@@ -37,7 +43,7 @@ stock_windows = StockPreprocessor(stock_fns = ood_stock_fns, window_size = WINDO
 dataset = StockDataset(stock_windows = stock_windows)
 
 # set up hyperparameters
-loss_func = nn.L1Loss(reduction = 'mean')
+loss_func = nn.L1Loss(reduction = 'mean').to(device)
 loader = data.DataLoader(dataset, batch_size = 1, shuffle = False)
 
 # test the model
@@ -46,11 +52,11 @@ predictions = []
 ground_truth = []
 for batch_id, samples in enumerate(loader): # iterate over batches
     # input prices and ground-truth price prediction
-    prices = samples['prices']
-    labels = samples['labels']
+    prices = samples['prices'].to(device)
+    labels = samples['labels'].to(device)
 
     # make predictions and calculate loss
-    pred = model(prices)
+    pred = model(prices).to(device)
     loss = loss_func(pred, labels).item()
     predictions.append(pred.item())
     ground_truth.append(labels.item())

@@ -40,9 +40,9 @@ class StockPreprocessor():
 
         # scale the data between 0 and 1
         # also, reshape the data and transform the test set
-        scaler = MinMaxScaler()
-        train = scaler.fit_transform(train).reshape(-1)
-        test = scaler.transform(test).reshape(-1)
+        #scaler = MinMaxScaler()
+        #train = scaler.fit_transform(train).reshape(-1)
+        #test = scaler.transform(test).reshape(-1)
 
         if self.sma_or_ema == 0: # perform simple moving average smoothing
             train = self.simple_mov_avg(train)
@@ -50,6 +50,10 @@ class StockPreprocessor():
         elif self.sma_or_ema == 1: # perform exponential moving average smoothing
             train = self.exp_mov_avg(train)
             test = self.exp_mov_avg(test)
+
+        scaler = MinMaxScaler()
+        train = scaler.fit_transform(train).reshape(-1)
+        test = scaler.transform(test).reshape(-1)
 
         train_windows = self.create_windows(train)
         test_windows = self.create_windows(test)
