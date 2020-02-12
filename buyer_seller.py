@@ -101,7 +101,7 @@ class BuyerSeller():
             else:
                 self.stock_counts[stock_ticker] = amount
 
-            if self.money < 1e-10:
+            if self.money < 1e-2:
                 self.money = 0.0
 
             #print("BUYING {} OF {} AT {}, with total cost {} and new money {} -- {}, {}, {}".format(amount, stock_ticker, curr_price, total_cost, self.money, tmp, self.money / curr_price - 1e-10, old_amount))
