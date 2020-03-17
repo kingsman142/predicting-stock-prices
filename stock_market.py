@@ -22,6 +22,9 @@ class StockMarket():
         self.stock_scalers = {}
         self.trading_start_date = trading_start_date
 
+        self.normalize_stock = False
+        self.normalization_window_size = 2500
+
         # iterate over all the stock files that belong to this dataset
         for stock_fn in self.stock_fns:
             stock_ticker = stock_fn.split(".")[0] # transform "aa.us.txt" into ["aa", "us", "txt"] into "aa"
@@ -37,7 +40,7 @@ class StockMarket():
             close_prices = data_csv.loc[:, 'Close'].as_matrix()
 
             print("Num rows in {}: {}".format(stock_fn, len(data_csv)))
-            if len(data_csv) < self.WINDOW_SIZE-1:
+            if len(data_csv) < self.WINDOW_SIZE-1:# or len(data_csv) < self.normalization_window_size:
                 continue
 
             # extract training and testing windows, and concatenate them onto our already existing training and testing data
@@ -58,6 +61,7 @@ class StockMarket():
 
             self.stock_market[stock_ticker] = np.nan # clear all the elements in the column (just floats) with NaN so we can replace them with their corresponding windows below
             self.stock_market[stock_ticker][(stock_market_start_index + self.WINDOW_SIZE) : (stock_market_start_index + self.WINDOW_SIZE + len(windows))] = windows # replace this stock's prices with actual window (previous K prices) and the ground-truth price
+            #self.stock_market[stock_ticker][(stock_market_start_index + self.normalization_window_size) : (stock_market_start_index + self.normalization_window_size + len(windows))] = windows # replace this stock's prices with actual window (previous K prices) and the ground-truth price
 
         self.stock_ticker_column_names = self.stock_market.columns[1:]
 
@@ -71,10 +75,11 @@ class StockMarket():
         elif self.sma_or_ema == 1: # perform exponential moving average smoothing
             prices = self.exp_mov_avg(prices)
 
-        # scale the data between 0 and 1
-        # also, reshape the data and transform the test set
-        self.stock_scalers[stock_ticker] = MinMaxScaler()
-        prices = self.stock_scalers[stock_ticker].fit_transform(prices).reshape(-1)
+        if self.normalize_stock:
+            # scale the data between 0 and 1
+            # also, reshape the data and transform the test set
+            self.stock_scalers[stock_ticker] = MinMaxScaler()
+            prices = self.stock_scalers[stock_ticker].fit_transform(prices).reshape(-1)
 
         prices_windows = self.create_windows(prices, prices_copy)
 
@@ -91,18 +96,44 @@ class StockMarket():
 
     # optional -- Simple Moving Average (SMA)
     def simple_mov_avg(self, stock_data):
-        # IF THE BELOW ONE-LINER FAILS TO WORK, USE THIS CODE
         smoothed_data = [np.average(stock_data[(i-self.smoothing_window_size):i]) for i in range(self.smoothing_window_size, len(stock_data)+1)]
         smoothed_data = np.reshape(smoothed_data, (-1, 1))
         return smoothed_data
 
     def create_windows(self, stock_data, stock_data_untransformed):
         output = []
-        for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
-            data_input = stock_data[index : (index + self.WINDOW_SIZE)]
-            data_label = stock_data[index + self.WINDOW_SIZE]
-            unsmoothed_gt_price = stock_data_untransformed[index + self.WINDOW_SIZE][0] # stock_data_untransformed is the price data that is unsmoothed & unnormalized
-            output.append((data_input, data_label, unsmoothed_gt_price))
+        if self.normalize_stock:
+            for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
+                data_input = stock_data[index : (index + self.WINDOW_SIZE)]
+                data_label = stock_data[index + self.WINDOW_SIZE]
+                unsmoothed_gt_price = stock_data_untransformed[index + self.WINDOW_SIZE][0] # stock_data_untransformed is the price data that is unsmoothed & unnormalized
+                output.append((data_input, data_label, unsmoothed_gt_price))
+        else:
+            #for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
+            #for index in range(len(stock_data) - self.normalization_window_size - 1):
+            for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
+                new_stock_data = stock_data[0 : (index + self.WINDOW_SIZE)]
+                scaler = MinMaxScaler()
+                scaler.fit(new_stock_data)
+                data_input = scaler.transform(new_stock_data[index : (index + self.WINDOW_SIZE)]).reshape(-1)
+                data_label = scaler.transform(stock_data[index + self.WINDOW_SIZE].reshape(1, -1))
+                unsmoothed_gt_price = float(stock_data[index + self.WINDOW_SIZE])
+
+                '''new_stock_data = stock_data[index : (index + self.normalization_window_size)]
+                scaler = MinMaxScaler()
+                scaler.fit(new_stock_data)
+                data_input = scaler.transform(new_stock_data[(self.normalization_window_size - self.WINDOW_SIZE):]).reshape(-1)
+                data_label = scaler.transform(stock_data[index + self.normalization_window_size].reshape(1, -1))
+                unsmoothed_gt_price = float(stock_data[index + self.normalization_window_size])'''
+
+                '''new_stock_data = stock_data[index : (index + 100)]
+                scaler = MinMaxScaler()
+                scaler.fit(new_stock_data)
+                data_input = scaler.transform(new_stock_data[75:]).reshape(-1)
+                data_label = scaler.transform(stock_data[index + 100].reshape(1, -1))
+                unsmoothed_gt_price = float(stock_data[index + 100])'''
+
+                output.append((data_input, data_label, unsmoothed_gt_price))
         return output
 
     def get_iteration_prices(self, index):

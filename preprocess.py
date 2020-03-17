@@ -17,6 +17,8 @@ class StockPreprocessor():
         self.sma_or_ema = sma_or_ema # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
         self.smoothing_window_size = smoothing_window_size
 
+        self.normalization_window_size = 1500
+
         # iterate over all the stock files that belong to this dataset
         for stock_fn in self.stock_fns:
             # read in this stock's data into a pandas dataframe
@@ -51,9 +53,9 @@ class StockPreprocessor():
             train = self.exp_mov_avg(train)
             test = self.exp_mov_avg(test)
 
-        scaler = MinMaxScaler()
-        train = scaler.fit_transform(train).reshape(-1)
-        test = scaler.transform(test).reshape(-1)
+        #scaler = MinMaxScaler()
+        #train = scaler.fit_transform(train).reshape(-1)
+        #test = scaler.transform(test).reshape(-1)
 
         train_windows = self.create_windows(train)
         test_windows = self.create_windows(test)
@@ -77,10 +79,29 @@ class StockPreprocessor():
 
     def create_windows(self, stock_data):
         output = []
+        #for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
+        #for index in range(len(stock_data) - self.normalization_window_size - 1):
         for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
-            data_input = stock_data[index : (index + self.WINDOW_SIZE)]
-            data_label = stock_data[index + self.WINDOW_SIZE]
-            output.append((data_input, data_label))
+            new_stock_data = stock_data[0 : (index + self.WINDOW_SIZE)]
+            scaler = MinMaxScaler()
+            scaler.fit(new_stock_data)
+            data_input = scaler.transform(new_stock_data[index : (index + self.WINDOW_SIZE)]).reshape(-1)
+            data_label = scaler.transform(stock_data[index + self.WINDOW_SIZE].reshape(1, -1))
+
+            '''new_stock_data = stock_data[index : (index + self.normalization_window_size)]
+            scaler = MinMaxScaler()
+            scaler.fit(new_stock_data)
+            data_input = scaler.transform(new_stock_data[(self.normalization_window_size - self.WINDOW_SIZE):]).reshape(-1)
+            data_label = scaler.transform(stock_data[index + self.normalization_window_size].reshape(1, -1))'''
+
+            '''data_input = stock_data[index : (index + self.WINDOW_SIZE)]
+
+            scaler = MinMaxScaler()
+            scaler.fit(data_input)
+            data_input = scaler.transform(data_input).reshape(-1)
+
+            data_label = scaler.transform(stock_data[index + self.WINDOW_SIZE].reshape(1, -1))'''
+            output.append((data_input, float(data_label)))
         return output
 
     def get_splits(self):

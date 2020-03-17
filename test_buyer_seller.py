@@ -34,7 +34,7 @@ else:
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # set MODEL_LOAD_NAME to a specific name to load a specific model or set it to None to load the newest trained model
-MODEL_LOAD_NAME = None # "train80_windowsize50_epochs1_batchsize1_hiddensize150_lr0.001_smoothing1_smoothingsize50"
+MODEL_LOAD_NAME = "train80_windowsize25_epochs20_batchsize1_hiddensize200_lr0.0005_smoothing2_smoothingsize26_avgloss0.0145763301583338" #"train80_windowsize25_epochs20_batchsize1_hiddensize200_lr0.0005_smoothing2_smoothingsize26_avgloss0.0145763301583338"
 if MODEL_LOAD_NAME is None:
     list_of_files = glob.glob(os.path.join("models", "*")) # select all models
     latest_file = max(list_of_files, key = os.path.getctime) # sort them by newest date and pick the most recent one
@@ -45,11 +45,11 @@ print("Loading model {} ...".format(MODEL_LOAD_NAME))
 
 # set network hyperparameters
 TRAIN = 0.8
-WINDOW_SIZE = 50
-SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
-SMOOTHING_WINDOW_SIZE = 50 # 12-day = 30% RoI, 26-day = 10% RoI, 50-day = 5.5% RoI, 100-day = 5% RoI
+WINDOW_SIZE = 25
+SMA_OR_EMA = 2 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
+SMOOTHING_WINDOW_SIZE = 25 # 12-day = 30% RoI, 26-day = 10% RoI, 50-day = 5.5% RoI, 100-day = 5% RoI
 INITIAL_MONEY = 10000
-TRADING_START_DATE = "2015" # begin trading at this date or later (e.g. "2015", "2007-01", "2007-01-01", "YYYY-MM-DD"); None => start date is the earliest start date across all stocks
+TRADING_START_DATE = "2012" # begin trading at this date or later (e.g. "2015", "2007-01", "2007-01-01", "YYYY-MM-DD"); None => start date is the earliest start date across all stocks
 
 # set up model
 model = StockPredictor(hidden_size = MODEL_HIDDEN_SIZE).to(device)
@@ -58,7 +58,7 @@ model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 # determine which OOD stocks to use
 all_stock_fns = [os.path.split(path)[1] for path in glob.glob(os.path.join("data", "Stocks", "*"))]
 random.shuffle(all_stock_fns)
-ood_stock_fns = all_stock_fns[0:100] #["acbi.us.txt", "googl.us.txt", "goex.us.txt", "goro.us.txt", "lea.us.txt", "tsla.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] #["acbi.us.txt", "googl.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] # ["acbi.us.txt"]
+ood_stock_fns = all_stock_fns[0:5000] #["acbi.us.txt", "googl.us.txt", "goex.us.txt", "goro.us.txt", "lea.us.txt", "tsla.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] #["acbi.us.txt", "googl.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] # ["acbi.us.txt"]
 print("Stocks traded: {}".format(ood_stock_fns))
 
 # preprocess the dataset and set up a stock market so we can pull prices on a daily basis

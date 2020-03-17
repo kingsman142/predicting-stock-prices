@@ -9,6 +9,8 @@ class BuyerSeller():
         self.savings_percent = 0.0 # 0.0001
         self.market = market # the stock market
 
+        self.normalize_stock = False # normalizes stock instead of individual windows
+
         self.STOCK_TOTAL_BUY_CAP = 10000 # maximum number of stocks you can own of an individual company at a given time
         self.stock_buy_minimum = 1 # minimum number of stocks you can buy of a company at a given time
 
@@ -26,11 +28,12 @@ class BuyerSeller():
 
         for stock_ticker in stock_tickers:
             curr_price, pred, curr_price_untransformed = stock_analysis_model[stock_ticker] # extract the current price and predicted price of this stock from the analysis model
-            if curr_price_untransformed == 0:
+            if curr_price_untransformed == 0 or curr_price == 0:
                 continue
 
-            curr_price = self.unscale_stock_price(stock_ticker, curr_price)
-            pred = self.unscale_stock_price(stock_ticker, pred)
+            if self.normalize_stock:
+                curr_price = self.unscale_stock_price(stock_ticker, curr_price)
+                pred = self.unscale_stock_price(stock_ticker, pred)
 
             self.stock_prices[stock_ticker] = curr_price_untransformed # update the price of this stock
             num_active_stocks += 1 if self.stock_prices[stock_ticker] > 0 else 0 # if this stock's price is greater than 0, then we can buy it
@@ -66,8 +69,9 @@ class BuyerSeller():
         if curr_price_untransformed == 0:
             return 0
 
-        threshold = 0.0001 # 0.0001 OR 0.0004 for buy
-        if margin >= 1.0002:
+        #threshold = 0.0001 # 0.0001 OR 0.0004 for buy
+        threshold = 1.0002 if self.normalize_stock else 1.0001
+        if margin >= threshold:
             amount = max(self.get_stock_buy_cap(self.stock_prices[stock_ticker]), self.stock_buy_minimum) # we have to buy at least self.stock_buy_minimum stocks at a given time, this helps to prevent buying 1e-10 stocks
             if self.money > (self.stock_prices[stock_ticker] * amount) and amount > 0 and (self.stock_counts.get(stock_ticker, 0) + amount) < self.STOCK_TOTAL_BUY_CAP: # cap out at N stocks of this company
                 return amount
@@ -145,4 +149,4 @@ class BuyerSeller():
     # can only spend X% of your money on each stock per day
     # maximum amount of a stock you can buy on a given day for a company
     def get_stock_buy_cap(self, curr_price):
-        return int(self.money / curr_price)
+        return 250 #int(self.money / curr_price) # 250

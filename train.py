@@ -20,12 +20,12 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # set network hyperparameters
 TRAIN = 0.8 #0.0209
 TEST = 0.2
-WINDOW_SIZE = 50 #250 #250
+WINDOW_SIZE = 25 #250 #250
 EPOCHS = 20
 BATCH_SIZE = 1 #4
 HIDDEN_SIZE = 200 #200
-LEARNING_RATE = 0.001 #0.0001
-SMA_OR_EMA = 1 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
+LEARNING_RATE = 0.0005 #0.0001
+SMA_OR_EMA = 2 # 0 = use Simple Moving Average, 1 = use Exponential Moving Average, any other number = else don't use either SMA or EMA
 SMOOTHING_WINDOW_SIZE = 26
 
 MODEL_LOAD_NAME = None # change to load in a custom model
@@ -39,6 +39,16 @@ MODEL_SAVE_NAME = "train{}_windowsize{}_epochs{}_batchsize{}_hiddensize{}_lr{}_s
 # train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 150, lr = 0.001, exponential moving average (gamma = 0.0392), smoothing window = 50, 6 stocks => 0.0014 L1 train loss, 0.0024 test loss ('sum' reduction)
 # train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 150, lr = 0.001, exponential moving average (gamma = 0.2), smoothing window = 50, 6 stocks, SGD => 0.0051 L1 loss ('sum' reduction)
 # train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 150, lr = 0.001, exponential moving average (gamma = standard), smoothing window = 26, 6 stocks => 0.0015 L1 train loss, 0.0016 test loss ('sum' reduction)
+# train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, exponential moving average (gamma = standard), smoothing window = 26, 6 stocks => 0.0014 L1 train loss, 0.0009 test loss ('sum' reduction)
+# train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, exponential moving average (gamma = standard), smoothing window = 12, 6 stocks => 0.0017 L1 train loss, 0.0024 test loss ('sum' reduction)
+# train = 0.8, window = 50, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, simple moving average (gamma = standard), smoothing window = 26, 6 stocks => 0.0013 L1 train loss, 0.0025 test loss ('sum' reduction)
+# train = 0.8, window = 25, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, exponential moving average (gamma = standard), smoothing window = 12, 6 stocks => 0.0018 L1 train loss, 0.0019 test loss ('sum' reduction)
+# train = 0.8, window = 25, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, exponential moving average (gamma = standard), smoothing window = 26, 6 stocks => 0.0014 L1 train loss, 0.0012 test loss ('sum' reduction)
+# train = 0.8, window = 25, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, no moving average, smoothing window = N/A, 6 stocks => 0.0007 L1 train loss, 0.014 test loss ('sum' reduction)
+
+# Instead of normalizing the entire stock, normalize each window separately
+# train = 0.8, window = 25, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, no moving average, smoothing window = N/A, normalization window size = 100, 6 stocks => 0.058 L1 train loss, 0.058 test loss ('sum' reduction)
+# train = 0.8, window = 25, epochs = 20, batch size = 1, hidden size = 200, lr = 0.0005, no moving average, smoothing window = N/A, normalization window size = 1500, 6 stocks => 0.058 L1 train loss, 0.058 test loss ('sum' reduction)
 
 # set up dataset and model
 stock_fns = ["aa.us.txt", "msft.us.txt", "goog.us.txt", "gpic.us.txt", "rfdi.us.txt", "aal.us.txt"] # chosen somewhat randomly
