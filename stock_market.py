@@ -1,10 +1,14 @@
 import os
 import sys
+import warnings
 import numpy as np
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from sklearn.preprocessing import MinMaxScaler
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # simulates the stock market
@@ -25,43 +29,48 @@ class StockMarket():
         self.normalize_stock = False
         self.normalization_window_size = 2500
 
-        # iterate over all the stock files that belong to this dataset
-        for stock_fn in self.stock_fns:
+        def process_stock(stock_fn):
             stock_ticker = stock_fn.split(".")[0] # transform "aa.us.txt" into ["aa", "us", "txt"] into "aa"
-
-            # read in this stock's data into a pandas dataframe
             path = os.path.join("data", "Stocks", stock_fn)
             try:
-                data_csv = pd.read_csv(path, header = 0).sort_values('Date')
+                data_csv = pd.read_csv(path, header=0).sort_values('Date')
             except: # error is most likely "pandas.errors.EmptyDataError: No columns to parse from file"
-                continue
+                return None, None, None, None
+
             if self.trading_start_date is not None and type(self.trading_start_date) is str and len(self.trading_start_date) >= 4:
                 data_csv = data_csv[data_csv['Date'] >= self.trading_start_date] # only begin trading this stock at a specific start date
-            close_prices = data_csv.loc[:, 'Close'].as_matrix()
+            close_prices = data_csv.loc[:, 'Close'].to_numpy()
 
-            print("Num rows in {}: {}".format(stock_fn, len(data_csv)))
-            if len(data_csv) < self.WINDOW_SIZE-1:# or len(data_csv) < self.normalization_window_size:
-                continue
+            stock_fn_index = self.stock_fns.index(stock_fn)
+            print("({}/{}) Num rows in {}: {}".format(stock_fn_index+1, len(self.stock_fns), stock_fn, len(data_csv)))
+            if len(data_csv) < self.WINDOW_SIZE - 1: # or len(data_csv) < self.normalization_window_size:
+                return None, None, None, None
 
-            # extract training and testing windows, and concatenate them onto our already existing training and testing data
+            # extract training and testing windows, and concatenate them onto our already existing training/testing set
             windows = self.preprocess_stocks(stock_ticker, close_prices)
+            historical_prices = data_csv.loc[:, ['Date', 'Close']]
+            historical_prices.rename(columns={'Close': stock_ticker}, inplace=True)
 
-            historical_prices = data_csv.loc[:, ['Date', 'Close']] # similar matrix to the above but with the dates included
-            historical_prices.rename(columns = {'Close': stock_ticker}, inplace = True) # rename the 'Close' column to the stock's ticker name so we can make a stock matrix involving different stocks later
+            stock_starting_date = historical_prices.iloc[0]['Date']
+            return stock_ticker, historical_prices, windows, stock_starting_date
 
-            if self.stock_market is None:
-                self.stock_market = historical_prices
-            else:
-                self.stock_market = pd.merge(self.stock_market, historical_prices, how = 'outer', on = 'Date')
-            self.stock_market.sort_values('Date', inplace = True, ascending = True) # sanity check to make sure all the prices are in chronological order
-            self.stock_market.reset_index(inplace = True, drop = True) # after sorting, make sure the original row indices weren't kept, and drop the original index
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(process_stock, stock_fn): stock_fn for stock_fn in self.stock_fns}
+            for future in as_completed(futures):
+                stock_ticker, historical_prices, windows, stock_starting_date = future.result()
+                if stock_ticker is None:
+                    continue
 
-            stock_starting_date = historical_prices.iloc[0]['Date'] # get the date on the 0th row (assuming this data is sorted by Date)
-            stock_market_start_index = self.stock_market.loc[self.stock_market['Date'] == stock_starting_date].index[0] # get the row number, after merging in this stock's prices, where this stock began to be sold on the stock market
+                if self.stock_market is None:
+                    self.stock_market = historical_prices
+                else:
+                    self.stock_market = pd.merge(self.stock_market, historical_prices, how='outer', on='Date')
+                self.stock_market.sort_values('Date', inplace=True, ascending=True)
+                self.stock_market.reset_index(inplace=True, drop=True)
 
-            self.stock_market[stock_ticker] = np.nan # clear all the elements in the column (just floats) with NaN so we can replace them with their corresponding windows below
-            self.stock_market[stock_ticker][(stock_market_start_index + self.WINDOW_SIZE) : (stock_market_start_index + self.WINDOW_SIZE + len(windows))] = windows # replace this stock's prices with actual window (previous K prices) and the ground-truth price
-            #self.stock_market[stock_ticker][(stock_market_start_index + self.normalization_window_size) : (stock_market_start_index + self.normalization_window_size + len(windows))] = windows # replace this stock's prices with actual window (previous K prices) and the ground-truth price
+                stock_market_start_index = self.stock_market.loc[self.stock_market['Date'] == stock_starting_date].index[0]
+                self.stock_market[stock_ticker] = np.nan
+                self.stock_market[stock_ticker][(stock_market_start_index + self.WINDOW_SIZE):(stock_market_start_index + self.WINDOW_SIZE + len(windows))] = windows
 
         self.stock_ticker_column_names = self.stock_market.columns[1:]
 
