@@ -90,7 +90,7 @@ for epoch in range(EPOCHS): # iterate over epochs
 
         # print out useful logging information for user
         avg_loss += loss.item()
-        if batch_id % 50 == 0:
+        if (batch_id+1) % 100 == 0:
             if BATCH_SIZE == 1:
                 print("(train) Epoch {}/{} -- Batch {}/{} -- Loss: {} -- Pred: {}, True: {}".format(epoch+1, EPOCHS, batch_id+1, len(train_loader), loss.item(), pred.item(), labels.item()))
             else:

@@ -69,6 +69,7 @@ avg_loss /= len(loader)
 print("(test) avg loss: {}".format(avg_loss))
 
 if len(ood_stock_fns) == 1:
+    # how many of the fluctations were correct?
     fluctuation_correct = 0
     for i in range(1, len(predictions)):
         if ground_truth[i] > ground_truth[i-1] and predictions[i] > predictions[i-1]:
@@ -78,7 +79,7 @@ if len(ood_stock_fns) == 1:
     fluctuation_accuracy = fluctuation_correct / (len(predictions) - 1)
     print("Fluctuation accuracy: {}%".format(round(fluctuation_accuracy * 100.0, 2)))
 
-if len(ood_stock_fns) == 1: # only have to plot one stock's predictions
+    # plot the predictions
     stock_ticker = ood_stock_fns[0].split(".")[0]
     pred_graph_filename = "{}_price_prediction_smoothed".format(stock_ticker)
     plot_predictions(stock_ticker, pred_graph_filename, ground_truth, predictions)

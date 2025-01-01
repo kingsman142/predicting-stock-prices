@@ -24,7 +24,7 @@ class StockPreprocessor():
             # read in this stock's data into a pandas dataframe
             path = os.path.join("data", "Stocks", stock_fn)
             data_csv = pd.read_csv(path, header = 0).sort_values('Date')
-            close_prices = data_csv.loc[:, 'Close'].as_matrix()
+            close_prices = data_csv.loc[:, 'Close'].to_numpy()
 
             # make sure this dataset belongs to the overall data variable belonging to this class so we can plot them later on
             self.data.append(data_csv)
