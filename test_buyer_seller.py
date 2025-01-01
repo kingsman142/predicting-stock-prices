@@ -1,5 +1,5 @@
 ##### RULES #####
-# 1) No buying of more than 10 stocks of a company per day
+# 1) No buying of more than 10 units of a company's stock per day
 # 2) Every stock you invest in, you update its price at closing every day
 # 3) Every stock you've invested in today, check its price every 2 hours to make sure it's not crashing
 #################
@@ -58,7 +58,7 @@ model.load_state_dict(torch.load(os.path.join("models", MODEL_LOAD_NAME)))
 # determine which OOD stocks to use
 all_stock_fns = [os.path.split(path)[1] for path in glob.glob(os.path.join("data", "Stocks", "*"))]
 random.shuffle(all_stock_fns)
-ood_stock_fns = all_stock_fns[0:5000] #["acbi.us.txt", "googl.us.txt", "goex.us.txt", "goro.us.txt", "lea.us.txt", "tsla.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] #["acbi.us.txt", "googl.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] # ["acbi.us.txt"]
+ood_stock_fns = all_stock_fns[0:1000] #["acbi.us.txt", "googl.us.txt", "goex.us.txt", "goro.us.txt", "lea.us.txt", "tsla.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] #["acbi.us.txt", "googl.us.txt"] #["acbi.us.txt", "googl.us.txt", "jpm.us.txt"] # ["acbi.us.txt"]
 print("Stocks traded: {}".format(ood_stock_fns))
 
 # preprocess the dataset and set up a stock market so we can pull prices on a daily basis
@@ -102,11 +102,6 @@ for day_number in range(len(market)): # iterate over batches
         print("Date: {}, Day {}/{} -- # active stocks: {}, # bought: {}, # sold: {}, Curr money: {}".format( \
                 date, day_number + 1, len(market), num_active_stocks, len(stocks_bought), len(stocks_sold), \
                 round(agent.get_curr_investment_money(), 2)))
-        #print("Pred prices: {}".format(pred_prices))
-        #print("True prices: {}".format(true_prices))
-        #print("Untr prices: {}".format(true_untransformed_prices))
-        #print(agent.get_stock_counts())
-        #print(agent.get_stock_prices())
 
     # prepare for next iteration
     curr_prices = true_prices
@@ -114,5 +109,5 @@ for day_number in range(len(market)): # iterate over batches
 
 agent.sell_all() # sell all stocks
 profit_loss_amount = agent.get_total_money() - INITIAL_MONEY # amount of money we gained or lost at the end of the simulation
-roi_percent = profit_loss_amount / INITIAL_MONEY # compared to the initial investment, how much of the initial investment did we make in profit/loss?
+roi_percent = (profit_loss_amount / INITIAL_MONEY) * 100 # compared to the initial investment, how much of the initial investment did we make in profit/loss?
 print("Final total money: {}, Final savings: {}, Profit/Loss: {}, RoI%: {}".format(round(agent.get_total_money(), 4), round(agent.get_curr_savings(), 4), round(profit_loss_amount, 4), round(roi_percent, 4)))
