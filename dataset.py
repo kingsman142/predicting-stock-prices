@@ -1,6 +1,4 @@
-import os
 import torch
-import numpy as np
 
 from utils import plot_stock_raw, plot_stock_clean
 

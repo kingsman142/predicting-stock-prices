@@ -1,5 +1,4 @@
 import os
-import torch
 import pandas as pd
 import numpy as np
 
@@ -79,9 +78,7 @@ class StockPreprocessor():
 
     def create_windows(self, stock_data):
         output = []
-        #for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
-        #for index in range(len(stock_data) - self.normalization_window_size - 1):
-        for index in range(len(stock_data) - self.WINDOW_SIZE - 1):
+        for index in range(len(stock_data) - self.WINDOW_SIZE):
             new_stock_data = stock_data[0 : (index + self.WINDOW_SIZE)]
             scaler = MinMaxScaler()
             scaler.fit(new_stock_data)
